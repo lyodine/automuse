@@ -1,0 +1,15 @@
+body {
+    font-family: "Open Sans", Helvetica, sans-serif;
+}
+
+code.literal {
+    color:black !important
+}
+
+.graphviz {
+    max-width: fit-content;
+    margin-left: 1em;
+}
+
+.strike {
+    text-decoration: line-through; }

@@ -1,0 +1,10 @@
+/build/
+/dist/
+/.mypy_cache/
+/.pytest_cache/
+.vscode/
+__pycache__/
+*.egg-info
+*.whl
+*.rst.bk
+/stash/
