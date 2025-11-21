@@ -36,7 +36,7 @@ def notes_on_fretboard(capo: Note,
     on the i\\ :sup:`th` string ... I think.
     """
     return [notes_on_string(key, capo, length)
-            for key in reversed(tuning)]
+            for key in tuning]
 
 
 def notes_of_interest(
@@ -153,7 +153,14 @@ def draw_scale(
 
     disseminate_neural_lattices(view_height, view_width)
 
-    for reverse_string_index, string in enumerate(octave_matrix_mask[::-1]):
+    # In a typical visualisation of the fretboard, the top string
+    #   ("high E") has the smallest index of 1. On the other hand,
+    #   a smaller Y value is closer to the bottom.
+    # Enumerating strings in the reverse order means, for example,
+    #   the 6th string ("low E") is plotted first at the bottom-
+    #   most position.
+    for reverse_string_index, string in enumerate(
+            reversed(octave_matrix_mask[::-1])):
         for fret_index, key in enumerate(string):
             if key is not None:
                 draw_key_at_location(reverse_string_index,
