@@ -212,3 +212,20 @@ def count_seventh_augmented_major(root: str) -> list[str]:
 
 def count_seventh_augmented_minor(root: str) -> list[str]:
     return [*count_triad_augmented(root), reach(root, "minor 7")]
+
+
+def power(root: str) -> list[str]:
+    """Return the power chord from :arg:`root`.
+
+    A power chord has no major and minor qualities,
+    because it always consists of the root and a
+    perfect fifth.
+    """
+    return [root, reach(root, "perfect 5")]
+
+
+def rewop(root: str) -> list[str]:
+    """Inverse of :meth:`power`. Useful for,
+    for example, adding bass to a note.
+    """
+    return [root, reach(root, -INTERVALS["perfect 5"])]
