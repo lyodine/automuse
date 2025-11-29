@@ -69,8 +69,8 @@ def triad(
     """Construct a triad.
 
     Args:
-        add: Positions of notes in scale to add
-        sus: Positions of notes in scale to remove
+        add: Positions of notes in scale to add, 0 indexed.
+        sus: Positions of notes in scale to remove, 0 indexed
         intervals: Positions of notes in scale to remove
 
     """
@@ -160,7 +160,7 @@ def seventh(
             base_key,
             progression,
             intervals=intervals,
-            add=[add, 7] if isinstance(add, int) else [*add, 7],
+            add=[add, 6] if isinstance(add, int) else [*add, 6],
             sus=sub,
             order=order,
         )
