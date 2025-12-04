@@ -14,7 +14,7 @@ in this module.
 
 from collections import deque
 
-from omusic import reach
+from . import reach
 from typing import Sequence
 from . import Interval
 
