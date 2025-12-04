@@ -180,7 +180,7 @@ class Player:
 
 
 def note_on(note: int,
-            time: int = 1,
+            time: float,
             velocity: int = 64,) -> mido.Message:
     velocity_modification = random.randint(-10, 10)
     return mido.Message(
@@ -194,21 +194,23 @@ def note_off(note: int, velocity: int = 64, time: int = 2) -> mido.Message:
     return mido.Message("note_off", note=note, velocity=velocity, time=time)
 
 
-def pause() -> None:
-    pass
-    # sleep(random.random() * .005)
-
-
 def play_notes(output: rtmidi.Output,
                pitches: Sequence[int],
-               duration: int,
+               duration: float,
+               gap: float,
                velocity: int):
 
-    for s in pitches:
-        output.send(note_on(s, duration, velocity))
-        pause()
+    output.send(note_on(pitches[0],
+                        duration,
+                        int(velocity * 0.1)))
 
-    sleep(duration)
+    sleep(gap)
+
+    for s in pitches[1:]:
+        output.send(note_on(s, duration, velocity))
+        sleep(gap)
+
+    sleep(duration - gap * len(pitches))
 
     for s in pitches:
         output.send(note_off(s))
@@ -216,7 +218,8 @@ def play_notes(output: rtmidi.Output,
 
 def play(player: Player,
          sound: str | list[str],
-         duration: int,
+         duration: float = 2,
+         gap: float = 0,
          velocity: int = 64) -> None:
 
     sound_int: int | Sequence[int] = note_s2i(sound)
@@ -227,7 +230,9 @@ def play(player: Player,
                        output=player.port,
                        pitches=sound_int,
                        duration=duration,
+                       gap=gap,
                        velocity=velocity)
+
 
 # def play(output: rtmidi.Output,
 #          sound: str | Sequence[str],
