@@ -29,7 +29,8 @@ Note = int
 
 def note_m2s(note: int) -> str:
     """ """
-    assert note >= 0 and note <= 127, "Note outside of MIDI range"
+    assert note >= 0 and note <= 127, \
+        "Note outside of MIDI range"
 
     return NOTE_NAMES[note % len(NOTE_NAMES)]\
         + str(note // len(NOTE_NAMES))
@@ -77,26 +78,30 @@ def note_i2s(note: Optional[Note]
 
 
 @overload
-def note_s2i(name: str) -> Note:
+def note_s2i(name: str,
+             solfege: bool = False) -> Note:
     pass
 
 
 @overload
-def note_s2i(name: list[str]) -> list[Note]:
+def note_s2i(name: list[str],
+             solfege: bool = False) -> list[Note]:
     pass
 
 
-def note_s2i(name: str | list[str]) -> Note | list[Note]:
+def note_s2i(name: str | list[str],
+             solfege: bool = False) -> Note | list[Note]:
     """Return either an integer or a list
     of notes that represents note(s) in
     :arg:`name`.
     """
 
     def _base(name: str) -> Note:
+        sofege_offset: int = 1 if solfege else 0
         if name in NOTES:
-            return NOTES.index(name)
+            return NOTES.index(name) + sofege_offset
         else:
-            return NOTE_NAMES.index(name)
+            return NOTE_NAMES.index(name) + sofege_offset
 
     if isinstance(name, str):
         return _base(name)
@@ -194,7 +199,7 @@ def name_interval(note_from: str, note_to: str) -> str:
     according to :attr:`INTERVALS`.
     """
 
-    interval_semitone = (note_s2i(note_to) - note_s2i(note_from))\
+    interval_semitone = (note_s2i(note_to) - note_s2i(note_from)) \
         % len(NOTE_NAMES)
 
     interval_major = str(
@@ -240,7 +245,8 @@ def invert(arg: int | str) -> Note | Interval | str:
     if isinstance(arg, Note) or isinstance(arg, Interval):
         return (len(NOTE_NAMES) - arg) % len(NOTES)
     else:
-        return note_i2s((len(NOTE_NAMES) - note_s2i(arg)) % len(NOTES))
+        return note_i2s((len(NOTE_NAMES) - note_s2i(arg))
+                        % len(NOTES))
 
 
 interval_i2s(invert(INTERVALS["major 7"]))
