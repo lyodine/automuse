@@ -72,6 +72,8 @@ def note_i2s(note: Optional[Note]
     if note is None:
         return " "
     if isinstance(note, Note):
+        if note > 127 or note < 0:
+            raise ValueError(f"MIDI does not support note {note}")
         return _base(note)
     else:
         return [_base(kn) for kn in note]
