@@ -132,7 +132,7 @@ NOTE_NAMES: list[str] = [
 NOTES_MIDI: list[str] = [note_m2s(i) for i in range(0, 127 + 1)]
 
 
-NOTES_INTEGER: list[str] = NOTE_NAMES
+NOTES_CLASS: list[str] = NOTE_NAMES
 
 
 NOTES = NOTES_MIDI

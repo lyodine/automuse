@@ -161,7 +161,7 @@ def port():
 class Player:
     def __init__(self: Self,
                  port: str = DEFAULT_PORT,
-                 pool_size: int = 10):
+                 pool_size: int = 6):
         self.port: rtmidi.Output = mido.open_output(port)  # type: ignore
         self.pool: ThreadPoolExecutor = ThreadPoolExecutor(pool_size)
 
@@ -179,41 +179,38 @@ class Player:
         return True
 
 
-def note_on(note: int,
-            time: float,
-            velocity: int = 64,) -> mido.Message:
+def _note_on(note: int,
+             velocity: int = 64,) -> mido.Message:
     velocity_modification = random.randint(-10, 10)
     return mido.Message(
         "note_on",
         note=note,
-        velocity=velocity + velocity_modification,
-        time=time)
+        velocity=velocity + velocity_modification,)
 
 
-def note_off(note: int, velocity: int = 64, time: int = 2) -> mido.Message:
-    return mido.Message("note_off", note=note, velocity=velocity, time=time)
+def _note_off(note: int, velocity: int = 64) -> mido.Message:
+    return mido.Message("note_off", note=note, velocity=velocity,)
 
 
-def play_notes(output: rtmidi.Output,
-               pitches: Sequence[int],
-               duration: float,
-               gap: float,
-               velocity: int):
+def _play_notes(output: rtmidi.Output,
+                pitches: Sequence[int],
+                duration: float,
+                gap: float,
+                velocity: int):
 
-    output.send(note_on(pitches[0],
-                        duration,
-                        int(velocity * 0.1)))
+    output.send(_note_on(pitches[0],
+                         int(velocity * 0.1)))
 
     sleep(gap)
 
     for s in pitches[1:]:
-        output.send(note_on(s, duration, velocity))
+        output.send(_note_on(s, velocity))
         sleep(gap)
 
     sleep(duration - gap * len(pitches))
 
     for s in pitches:
-        output.send(note_off(s))
+        output.send(_note_off(s))
 
 
 def play(player: Player,
@@ -226,7 +223,7 @@ def play(player: Player,
     if isinstance(sound_int, int):
         sound_int = [sound_int]
 
-    player.pool.submit(play_notes,
+    player.pool.submit(_play_notes,
                        output=player.port,
                        pitches=sound_int,
                        duration=duration,

@@ -16,32 +16,39 @@ from typing import Literal, Sequence
 from .scale import scale
 
 
-def count_triad(root: str, interval_list: Sequence[str]) -> list[str]:
-    global interval
+def reach_many(root: str, interval_list: Sequence[str]) -> list[str]:
+    """Obtain nodes by repeatedly reaching up from :arg:`root`.
+
+    Useful for building triads and scales from description.
+
+    For each named interval in :arg:`interval_list`, call
+    :code:`reach(root, interval)` and collect the result. At the
+    end, return collected results in order.
+    """
     return [reach(root, interval) for interval in interval_list]
 
 
 def count_triad_major(root: str) -> list[str]:
-    return count_triad(root, ["perfect 8", "major 3", "perfect 5"])
+    return reach_many(root, ["prime 1", "major 3", "perfect 5"])
 
 
 def count_triad_minor(root: str) -> list[str]:
-    return count_triad(root, ["perfect 8", "minor 3", "perfect 5"])
+    return reach_many(root, ["prime 1", "minor 3", "perfect 5"])
 
 
 def count_triad_augmented(root: str) -> list[str]:
-    return count_triad(root, ["perfect 8", "major 3", "augmented 5"])
+    return reach_many(root, ["prime 1", "major 3", "augmented 5"])
 
 
 def count_triad_diminished(root: str) -> list[str]:
-    return count_triad(root, ["perfect 8", "minor 3", "diminished 5"])
+    return reach_many(root, ["prime 1", "minor 3", "diminished 5"])
 
 
 def invert(triad: list[str]) -> list[str]:
     return [*triad[1:], note_i2s(note_s2i(triad[0]) + len(NOTE_NAMES))]
 
 
-def invert_to(triad: list[str], note: str) -> list[str]:
+def invert_triad_to(triad: list[str], note: str) -> list[str]:
     triad_without_octave = [match_out_numbers(x) for x in triad]
 
     note_without_octave = match_out_numbers(note)

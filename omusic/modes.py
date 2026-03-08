@@ -54,13 +54,13 @@ def _reduce_interval(intervals: list[Interval],
     return adjudicator
 
 
-def _pentatonic_major(hep: list[Interval]) -> list[Interval]:
+def pentatonic_major(hep: list[Interval]) -> list[Interval]:
     assert len(hep) == 7
 
     return _reduce_interval(hep, [x - 1 for x in [1, 2, 3, 5, 6]])
 
 
-def _pentatonic_minor(hep: list[Interval]) -> list[Interval]:
+def pentatonic_minor(hep: list[Interval]) -> list[Interval]:
     assert len(hep) == 7
 
     return _reduce_interval(hep, [x - 1 for x in [1, 3, 4, 5, 7]])
@@ -84,29 +84,29 @@ def _add_flat_at(scale: list[Interval], index: int) -> list[Interval]:
         + scale[index + 1:]
 
 
-def _blues_major(hep: list[Interval]) -> list[Interval]:
+def blues_major(hep: list[Interval]) -> list[Interval]:
     # Maybe it is correct? The warning message is annoying
     #   though, so I removed it.
     # print("Warning: The correctness of"
     #       " `blues_major` has not been verified.")
-    return _add_flat_at(_pentatonic_major(hep), 2)
+    return _add_flat_at(pentatonic_major(hep), 2)
 
 
-def _blues_minor(hep: list[Interval]) -> list[Interval]:
+def blues_minor(hep: list[Interval]) -> list[Interval]:
     # Maybe it is correct? The warning message is annoying
     #   though, so I removed it.
     # print("Warning: The correctness of"
     #       " blues_minor` has not been verified.")
-    return _add_flat_at(_pentatonic_minor(hep), 3)
+    return _add_flat_at(pentatonic_minor(hep), 3)
 
 
-def _harmonic_minor(minor_scale: list[Interval]) -> list[Interval]:
+def harmonic_minor(minor_scale: list[Interval]) -> list[Interval]:
     return [*minor_scale[:-2],
             minor_scale[-2] + 1,
             *minor_scale[-1:]]
 
 
-def _melodic_minor(minor_scale: list[Interval]) -> list[Interval]:
+def melodic_minor(minor_scale: list[Interval]) -> list[Interval]:
     return [*minor_scale[:-3],
             minor_scale[-3] + 1,
             *minor_scale[-2:]]
@@ -156,8 +156,14 @@ DIMINISHED_WHOLE_HALF: list[Interval] = [2, 1] * 4
 DIMINISHED_HALF_WHOLE: list[Interval] = [1, 2] * 4
 AUGMENTED: list[Interval] = [3, 1, 3, 1, 3, 1]
 
-MAJOR_PENTATONIC = _pentatonic_major(MAJOR)
-MINOR_PENTATONIC = _pentatonic_minor(MINOR)
+MAJOR_PENTATONIC = pentatonic_major(MAJOR)
+MINOR_PENTATONIC = pentatonic_minor(MINOR)
 
-MAJOR_BLUES = _blues_major(MAJOR)
-MINOR_BLUES = _blues_minor(MINOR)
+MAJOR_BLUES = blues_major(MAJOR)
+MINOR_BLUES = blues_minor(MINOR)
+
+SEVENTH_AUGMENTED = [0, 4, 4, 2]
+SEVENTH_DIMINISHED = [0, 3, 3, 3]
+SEVENTH_MAJOR = [0, 4, 3, 4]
+SEVENTH_MINOR = [0, 3, 4, 3]
+TRIAD = [0, 4, 3]
