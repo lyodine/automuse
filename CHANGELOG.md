@@ -1,3 +1,7 @@
+# 1.0.1
+
+* `(+)` Add project links
+
 # 1.0.0
 
 * `(+)` Create tutorials for `guitar`, `guesser`, and `midi` (2fc80c4)
