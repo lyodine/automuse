@@ -14,6 +14,16 @@ omusic.chord module
    :undoc-members:
    :show-inheritance:
 
+omusic.guesser module
+---------------------
+.. inheritance-diagram:: omusic.guesser
+   :parts: 1
+
+.. automodule:: omusic.guesser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 omusic.guitar module
 --------------------
 .. inheritance-diagram:: omusic.guitar
