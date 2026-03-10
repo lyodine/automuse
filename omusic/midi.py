@@ -1,6 +1,6 @@
 """Utilities that play MIDI notes.
 """
-from typing import Sequence, Annotated
+from typing import Sequence, Annotated, Literal
 import mido  # type: ignore[import-untyped]
 import mido.backends.rtmidi as rtmidi  # type: ignore[import-untyped]
 import random
@@ -11,7 +11,7 @@ from time import sleep
 
 from concurrent.futures import ThreadPoolExecutor
 
-
+MINIMUM_VELOCITY: int = 1
 from typing import Self
 
 #: Type of a number in an inclusive range.
@@ -245,50 +245,114 @@ def _note_off_any(channel: Channel,
 
 def _play_notes(output: rtmidi.Output,
                 channel: Channel,
-                pitches: Sequence[int],
+                chord: Sequence[int],
                 duration: float,
-                velocity: int):
+                velocity: int,
+                *,
+                arpeggio: Literal["ascending"]
+                | Literal["descending"]
+                | None,
+                spacing: float
+                | tuple[float, float],
+                touch: int
+                | tuple[int, int]):
 
-    output.send(_note_on(
-        channel=channel,
-        note=pitches[0],
-        velocity=velocity))
+    # Arrange notes in order
+    if arpeggio is not None:
+        if arpeggio == "ascending":
+            chord = sorted(chord)
+        elif arpeggio == "descending":
+            chord = sorted(chord, reverse=True)
+        else:
+            raise ValueError(f"`arpeggio` cannot be {arpeggio}.")
 
-    for pitch in pitches[1:]:
+    chord_length: int = len(chord)
+
+    # Create vector of velocity variations
+    velocity_deltas: Sequence[int]
+    if isinstance(touch, tuple):
+        velocity_deltas = [random.randint(touch[0],
+                                          touch[1])
+                           for _ in range(chord_length)]
+    else:
+        velocity_deltas = [0] * chord_length
+
+    # Create vector of melodic intervals
+    # After each note is played, wait for ``offsets_for_next``
+    #   second(s) before playing the next note.
+    next_offsets: Sequence[float]
+    if isinstance(spacing, tuple):
+        next_offsets = [random.uniform(spacing[0],
+                                       spacing[1])
+                        for _ in range(chord_length)]
+    else:
+        next_offsets = [0] * chord_length
+
+    #: Schedule of notes to play. Each item is
+    #:  a tuple (note, velocity_delta, next_offset).
+    play_schedule: Sequence[tuple[int, float, float]]
+    play_schedule = tuple(zip(chord, velocity_deltas, next_offsets))
+
+    for note, velocity_delta, next_offset in play_schedule:
         output.send(_note_on(channel=channel,
-                             note=pitch,
-                             velocity=velocity))
+                             note=note,
+                             velocity=velocity + velocity_delta))
+        sleep(next_offset)
 
-    sleep(duration)
+    # Subtract intervals, so notes play for the same duration.
+    sleep(duration - sum(next_offsets))
 
-    for s in pitches:
+    for note, velocity_delta, _ in play_schedule:
         output.send(_note_off(channel=channel,
-                              note=s,
-                              velocity=velocity))
+                              note=note,
+                              velocity=velocity + velocity_delta))
 
 
 def play(player: Player,
-         sound: str | list[str],
+         notes: str | list[str],
          duration: float = 2,
          channel: Channel = 0,
-         velocity: int = 64) -> None:
+         velocity: int = 64,
+         *,
+         arpeggio: Literal["ascending"]
+         | Literal["descending"]
+         | None = None,
+         spacing: float
+         | tuple[float, float] = 0,
+         touch: int
+         | tuple[int, int] = 0) -> None:
+    """Play :arg:`notes` with :arg:`player`.
 
-    sound_int: int | Sequence[int] = note_s2i(sound)
+    Args:
+        player: A context manager that controls
+            a MIDI channel.
+        notes: Note or chord to play.
+        duration: Duration of the note or chord.
+        channel: Channel to play the note or chord in.
+        velocity: Velocity of the note or chord.
+        arpeggio: Order of the note or chord. If ``None``,
+            then the order in :arg:`notes` is used.
+        spacing: Melodic intervals between notes
+            in the chord. If ``0``, then all notes are
+            played at the same time.
+        touch: Variation in note velocity (touch pressure).
+            Simulates the beautiful human imperfection.
+    """
+
+    sound_int: int | Sequence[int] = note_s2i(notes)
     if isinstance(sound_int, int):
         sound_int = [sound_int]
 
     player.pool.submit(_play_notes,
                        output=player.port,
                        channel=channel,
-                       pitches=sound_int,
+                       chord=sound_int,
                        duration=duration,
-                       velocity=velocity)
+                       velocity=velocity,
+                       arpeggio=arpeggio,
+                       spacing=spacing,
+                       touch=touch)
 
-
-# def play(output: rtmidi.Output,
-#          sound: str | Sequence[str],
-#          duration: int,
-#          velocity: int = 64) -> None:
 
 def change_instrument(player: Player,
                       channel: Channel,
