@@ -4,6 +4,7 @@ from typing import Sequence, Annotated, Literal
 import mido  # type: ignore[import-untyped]
 import mido.backends.rtmidi as rtmidi  # type: ignore[import-untyped]
 import random
+from dataclasses import dataclass
 
 from . import note_s2i
 from enum import IntEnum
@@ -155,6 +156,67 @@ class Instrument(IntEnum):
     Helicopter = 126
     Applause = 127
     Gunshot = 128
+
+
+@dataclass(frozen=True)
+class Percussion():
+    """Percussion instrument codes implemented with
+    reference to the General MIDI Level 1 specification (`source`_).
+
+    Use these values as notes and not as instruments.
+    On channel 10 (or 9 because channels in MIDI messages are
+    zero-indexed), notes are interpreted as percussion
+    sounds.
+
+    .. _source: https://midi.org/general-midi-level-1
+    """
+    AcousticBassDrum = 35
+    BassDrum = 36
+    SideStick = 37
+    AcousticSnare = 38
+    HandClap = 39
+    ElectricSnare = 40
+    LowFloorTom = 41
+    ClosedHiHat = 42
+    HighFloorTom = 43
+    PedalHiHat = 44
+    LowTom = 45
+    OpenHiHat = 46
+    LowMidTom = 47
+    HiMidTom = 48
+    CrashCymbal = 49
+    HighTom = 50
+    RideCymbal = 51
+    ChineseCymbal = 52
+    RideBell = 53
+    Tambourine = 54
+    SplashCymbal = 55
+    Cowbell = 56
+    CrashCymbal = 57
+    Vibraslap = 58
+    RideCymbal = 59
+    HiBongo = 60
+    LowBongo = 61
+    MuteHiConga = 62
+    OpenHiConga = 63
+    LowConga = 64
+    HighTimbale = 65
+    LowTimbale = 66
+    HighAgogo = 67
+    LowAgogo = 68
+    Cabasa = 69
+    Maracas = 70
+    ShortWhistle = 71
+    LongWhistle = 72
+    ShortGuiro = 73
+    LongGuiro = 74
+    Claves = 75
+    HiWoodBlock = 76
+    LowWoodBlock = 77
+    MuteCuica = 78
+    OpenCuica = 79
+    MuteTriangle = 80
+    OpenTriangle = 81
 
 
 # Suppressing because MIDO does not come
