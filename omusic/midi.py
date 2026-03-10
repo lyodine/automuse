@@ -1,6 +1,6 @@
 """Utilities that play MIDI notes.
 """
-from typing import Sequence
+from typing import Sequence, Annotated
 import mido  # type: ignore[import-untyped]
 import mido.backends.rtmidi as rtmidi  # type: ignore[import-untyped]
 import random
@@ -13,6 +13,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 from typing import Self
+
+#: Type of a number in an inclusive range.
+type RangeInclusive = tuple[int, int]
+
+#: Index of a MIDI channel.
+type Channel = Annotated[int, RangeInclusive[0, 15]]
 
 
 class Instrument(IntEnum):
@@ -195,44 +201,76 @@ class Player:
         return True
 
 
-def _note_on(note: int,
-             velocity: int = 64,) -> mido.Message:
-    velocity_modification = random.randint(-10, 10)
+def _note_on(channel: Channel,
+             note: int,
+             velocity: int) -> mido.Message:
+    """Generate a Note On message.
+    """
     return mido.Message(
         "note_on",
+        channel=channel,
         note=note,
-        velocity=velocity + velocity_modification,)
+        velocity=velocity)
 
 
-def _note_off(note: int, velocity: int = 64) -> mido.Message:
-    return mido.Message("note_off", note=note, velocity=velocity,)
+def _note_off(channel: Channel,
+              note: int,
+              velocity: int) -> mido.Message:
+    """Generate a Note Off message.
+    """
+    return mido.Message(
+        "note_off",
+        channel=channel,
+        note=note,
+        velocity=velocity)
+
+
+def _note_off_any(channel: Channel,
+                  note: int,) -> mido.Message:
+    """Generate a Note On message with
+    velocity set to 0.
+
+    Per the MIDI standard, this message should
+    be treated as a Note Off. Because the message does
+    not specify a velocity, it may matched to any
+    ongoing note with the specified pitch.
+
+    """
+    return mido.Message(
+        "note_on",
+        channel=channel,
+        note=note,
+        velocity=0)
 
 
 def _play_notes(output: rtmidi.Output,
+                channel: Channel,
                 pitches: Sequence[int],
                 duration: float,
-                gap: float,
                 velocity: int):
 
-    output.send(_note_on(pitches[0],
-                         int(velocity * 0.1)))
+    output.send(_note_on(
+        channel=channel,
+        note=pitches[0],
+        velocity=velocity))
 
-    sleep(gap)
+    for pitch in pitches[1:]:
+        output.send(_note_on(channel=channel,
+                             note=pitch,
+                             velocity=velocity))
 
-    for s in pitches[1:]:
-        output.send(_note_on(s, velocity))
-        sleep(gap)
-
-    sleep(duration - gap * len(pitches))
+    sleep(duration)
 
     for s in pitches:
-        output.send(_note_off(s))
+        output.send(_note_off(channel=channel,
+                              note=s,
+                              velocity=velocity))
 
 
 def play(player: Player,
          sound: str | list[str],
          duration: float = 2,
-         gap: float = 0,
+         channel: Channel = 0,
          velocity: int = 64) -> None:
 
     sound_int: int | Sequence[int] = note_s2i(sound)
@@ -241,9 +279,9 @@ def play(player: Player,
 
     player.pool.submit(_play_notes,
                        output=player.port,
+                       channel=channel,
                        pitches=sound_int,
                        duration=duration,
-                       gap=gap,
                        velocity=velocity)
 
 
@@ -252,9 +290,10 @@ def play(player: Player,
 #          duration: int,
 #          velocity: int = 64) -> None:
 
-
 def change_instrument(player: Player,
+                      channel: Channel,
                       instrument: Instrument) -> None:
 
     player.port.send(mido.Message('program_change',
+                                  channel=channel,
                                   program=instrument))
