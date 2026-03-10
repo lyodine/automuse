@@ -151,11 +151,27 @@ class Instrument(IntEnum):
     Gunshot = 128
 
 
+# Suppressing because MIDO does not come
+#   with the right stubs.
+def show_ports() -> list[str]:
+    """Show a list of available MIDI ports.
+
+    These names can be given to :meth:`set_default_port`
+    and :class:`Player`.
+    """
+    return mido.get_output_names()  # type: ignore
+
+
 DEFAULT_PORT: str = mido.get_output_names()[0]  # type: ignore
 
 
-def port():
-    return DEFAULT_PORT
+def set_default_port(port_name: str) -> None:
+    """Set the default output port :attr:`DEFAULT_PORT`.
+    :class:`Player` uses this port when one is not given
+    in its initialiser.
+    """
+    global DEFAULT_PORT
+    DEFAULT_PORT = port_name
 
 
 class Player:
