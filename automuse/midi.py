@@ -219,15 +219,6 @@ def play(player: Player,
                        touch=touch)
 
 
-def change_instrument(player: Player,
-                      channel: Channel,
-                      instrument: Instrument) -> None:
-
-    player.port.send(mido.Message('program_change',
-                                  channel=channel,
-                                  program=instrument))
-
-
 class Instrument(IntEnum):
     """Instrument codes implemented with
     reference to the General MIDI Level 1 specification (`source`_).
@@ -423,3 +414,12 @@ class Percussion():
     OpenCuica = 79
     MuteTriangle = 80
     OpenTriangle = 81
+
+
+def change_instrument(player: Player,
+                      channel: Channel,
+                      instrument: Instrument) -> None:
+
+    player.port.send(mido.Message('program_change',
+                                  channel=channel,
+                                  program=instrument))

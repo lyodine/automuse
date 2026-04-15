@@ -7,9 +7,9 @@ from importlib.metadata import metadata
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = metadata('omusic')['Name']
-copyright = f"2024-2025, {metadata('omusic')['Author-email']}"
-description = f"{metadata('omusic')['Summary']}"
+project = metadata('automuse')['Name']
+copyright = f"2024-2025, {metadata('automuse')['Author-email']}"
+description = f"{metadata('automuse')['Summary']}"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

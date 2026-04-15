@@ -5,7 +5,7 @@ To install from PiPy, run the following command:
 
 .. code-block:: bash
 
-   pip install omusic
+   pip install automuse
 
 To install from source, go to the root directory then run the following command:
 

@@ -1,7 +1,7 @@
 """Utilities that visualise notes on
 a fretboard.
 """
-from typing import Optional
+from typing import Optional, Sequence
 from . import note_s2i, NOTE_NAMES, NOTES, Note, note_i2s
 import matplotlib.pyplot as plt
 
@@ -49,7 +49,7 @@ def notes_of_interest(
     Use to visualise chords.
     """
 
-    scale: list[int] = note_s2i(notes)
+    scale: Sequence[int] = note_s2i(notes)
     easy_scale: list[int] = [x % 12 for x in scale]
 
     def is_note_on_scale(note: int, strict: bool) -> bool:

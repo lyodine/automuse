@@ -7,8 +7,10 @@
 
 |
 
-OMusic Documentation
-====================
+AutoMuse started as an attempt to computerise music theory. It now sports a set of powerful tools for transcribing, harmonising, and playing.
+
+AutoMuse Documentation
+======================
 
 .. toctree::
    :maxdepth: 2

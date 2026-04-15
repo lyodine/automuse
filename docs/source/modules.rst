@@ -1,7 +1,7 @@
-omusic
-======
+automuse
+========
 
 .. toctree::
    :maxdepth: 4
 
-   omusic
+   automuse
