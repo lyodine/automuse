@@ -134,7 +134,7 @@ class MatchResult(NamedTuple):
 
 
 def guess_scale(notes: Sequence[str],
-                mode_specs: Sequence[ModeSpec],
+                mode_specs: Sequence[ModeSpec] = TEST_SCALES,
                 roots: Sequence[str] = _IMMUTABLE_NOTE_NAMES,
                 sort_key: Literal["matched"]
                 | Literal["unused"]
