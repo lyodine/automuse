@@ -40,5 +40,5 @@ find = {}
 reportUnknownMemberType = false
 
 [project.urls]
-Documentation = "https://yidingli.com/docs/evokit/"
-Repository = "https://yidingli.com/projects/evokit/"
+Documentation = "https://yidingli.com/docs/automuse/"
+Repository = "https://yidingli.com/projects/automuse/"
