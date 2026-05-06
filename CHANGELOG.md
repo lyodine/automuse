@@ -1,3 +1,8 @@
+# 2.0.1
+
+* `(+)` Use absolute links (f4b326d)
+* `(+)` Give `guesser` a default scale (611e1ff)
+
 # 2.0.0
 
 * `(+)` Rename to AutoMuse (1fc2e9d)
