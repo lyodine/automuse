@@ -219,6 +219,41 @@ def play(player: Player,
                        touch=touch)
 
 
+def voice(notes: list[str],
+          scheme: Optional[Sequence[int]] = None,
+          play_args: Optional[dict[str, Any]] = None) -> None:
+    """Play :arg:`notes` with :arg:`player`.
+
+    Args:
+        notes: See :meth:`play`.
+        scheme: List of integers, where each item controls how
+            the corresponding note in :arg: notes` is transposed
+            before playing.
+        play_args: Dictionary that is passed to
+            :meth:`play` as keyword arguments.
+    """
+    if scheme is not None:
+        notes_to_play: list[str] =\
+            [transpose(note, scheme[i])
+             for i, note in enumerate(notes)]
+    else:
+        notes_to_play = notes
+
+    if play_args is None:
+        play_args = {}
+
+    with Player() as player:
+        # Passing an [str, Any] dict as argument
+        #   does not check for the argument of :meth:`play`.
+        # Better approach would be to create a type for it,
+        #   but that's a bit too much work.
+        # For now, the user is responsible for ensuring that
+        #   :arg:`play_args` is correct.
+        play(player,
+             notes=notes_to_play,
+             **play_args)  # type: ignore[reportCallIssue]
+
+
 class Instrument(IntEnum):
     """Instrument codes implemented with
     reference to the General MIDI Level 1 specification (`source`_).
