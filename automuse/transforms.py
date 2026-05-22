@@ -53,14 +53,30 @@ def invert_chord(notes: list[str]) -> list[str]:
 def invert_chord_by(notes: list[str], invert_by: int) -> list[str]:
     """Invert :arg:`notes` by :arg:`invert_by`.
     """
-    invert_by = invert_by % len(notes)
-    return notes[invert_by:] + notes[:invert_by]
+    invert_by_octaves: int = \
+        int(math.copysign((abs(invert_by) // len(notes)),
+                          invert_by))
+    invert_by = int(math.copysign((abs(invert_by) % len(notes)),
+                                  invert_by))
+
+    # Documentation is for the weak
+    hedon: list[str] = transpose(notes[:invert_by], 12)\
+        if invert_by > 0 else notes[:invert_by]
+
+    dolor: list[str] = transpose(notes[invert_by:], -12)\
+        if invert_by < 0 else notes[invert_by:]
+
+    oll = transpose(dolor + hedon, invert_by_octaves * 12)
+
+    return oll
 
 
 def invert_chord_to(notes: list[str],
                     note: str) -> list[str]:
     """Invert :arg:`notes` to :arg:`note`. In other
     words, slash chord.
+
+    Can only transpose up.
 
     Degree of inversion is computed with the note
     class of :arg:`note`; its octave does not matter.
