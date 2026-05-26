@@ -493,7 +493,7 @@ def percuss(player: Player,
 
     return _play_int(player,
                      notes=sound_int,
-                     channel=10,
+                     channel=9,
                      duration=duration,
                      velocity=velocity,
                      arpeggio=arpeggio,
