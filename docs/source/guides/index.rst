@@ -13,7 +13,7 @@ Exploring Music
 
 * Constructing and exploring the Circle of Fifths: :doc:`examples/circle_of_fifths`.
 
-* Changing music, from transposition to Neo-Riemannian transforms: :doc:`examples/machinery`.
+* Changing music, from transposition to Neo-Riemannian transforms: :doc:`examples/transforms`.
 
 * A working MIDI player! :doc:`examples/midi`
 
