@@ -251,6 +251,19 @@ def name_interval(note_from: str, note_to: str) -> str:
     return matching_names[0]
 
 
+def name_intervals(notes: list[str]) -> list[str]:
+    """Take a list of notes, then return a list of
+    interval names. List contains one name for each
+    note in notes and the one after.
+    """
+    # Shifting then joining `notes` with itself creates a list
+    #   of this-next pairs.
+    # Placeholders used in the processes are sliced away.
+    return [name_interval(this, next)
+            for (this, next) in list(zip([":D", *notes],
+                                         [*notes, ":v"]))[1:-1]]
+
+
 def reach(root: str,
           interval: str | int,
           reverse: bool = False) -> str:
