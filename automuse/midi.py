@@ -4,7 +4,6 @@ from typing import Sequence, Annotated, Literal, Any, Optional
 import mido  # type: ignore[import-untyped]
 import mido.backends.rtmidi as rtmidi  # type: ignore[import-untyped]
 import random
-from dataclasses import dataclass
 
 from . import note_s2i
 from enum import IntEnum
@@ -209,15 +208,16 @@ def play(player: Player,
     if isinstance(sound_int, int):
         sound_int = [sound_int]
 
-    player.pool.submit(_play_notes,
-                       output=player.port,
-                       channel=channel,
-                       chord=sound_int,
-                       duration=duration,
-                       velocity=velocity,
-                       arpeggio=arpeggio,
-                       spacing=spacing,
-                       touch=touch)
+    return _play_int(
+        player=player,
+        notes=sound_int,
+        duration=duration,
+        channel=channel,
+        velocity=velocity,
+        arpeggio=arpeggio,
+        spacing=spacing,
+        touch=touch
+    )
 
 
 def voice(notes: list[str],
@@ -391,8 +391,16 @@ class Instrument(IntEnum):
     Gunshot = 128
 
 
-@dataclass(frozen=True)
-class Percussion():
+def change_instrument(player: Player,
+                      channel: Channel,
+                      instrument: Instrument) -> None:
+
+    player.port.send(mido.Message('program_change',
+                                  channel=channel,
+                                  program=instrument))
+
+
+class Percussion(IntEnum):
     """Percussion instrument codes implemented with
     reference to the General MIDI Level 1 specification (`source`_).
 
@@ -452,10 +460,68 @@ class Percussion():
     OpenTriangle = 81
 
 
-def change_instrument(player: Player,
-                      channel: Channel,
-                      instrument: Instrument) -> None:
+def percuss(player: Player,
+            notes: Percussion | list[Percussion],
+            duration: float = 2,
+            velocity: int = 64,
+            *,
+            arpeggio: Literal["ascending"]
+            | Literal["descending"]
+            | None = None,
+            spacing: float
+            | tuple[float, float] = 0,
+            touch: int
+            | tuple[int, int] = 0) -> None:
+    """Play :arg:`notes` with :arg:`player`.
 
-    player.port.send(mido.Message('program_change',
-                                  channel=channel,
-                                  program=instrument))
+    Args:
+        player: A context manager that controls
+            a MIDI channel.
+        notes: Notes to play.
+        duration: See :meth:`play`.
+        velocity: See :meth:`play`.
+        arpeggio: See :meth:`play`.
+        spacing: See :meth:`play`.
+        touch: See :meth:`play`.
+    """
+
+    sound_int: int | Sequence[int]
+    if isinstance(notes, Percussion):
+        sound_int = [int(notes)]
+    else:
+        sound_int = [int(note) for note in notes]
+
+    return _play_int(player,
+                     notes=sound_int,
+                     channel=10,
+                     duration=duration,
+                     velocity=velocity,
+                     arpeggio=arpeggio,
+                     spacing=spacing,
+                     touch=touch)
+
+
+def _play_int(
+        player: Player,
+        notes: list[int],
+        duration: float,
+        channel: Channel,
+        velocity: int,
+        *,
+        arpeggio: Literal["ascending"]
+        | Literal["descending"]
+        | None = None,
+        spacing: float
+        | tuple[float, float] = 0,
+        touch: int
+        | tuple[int, int] = 0) -> None:
+
+    player.pool.submit(_play_notes,
+                       output=player.port,
+                       channel=channel,
+                       chord=notes,
+                       duration=duration,
+                       velocity=velocity,
+                       arpeggio=arpeggio,
+                       spacing=spacing,
+                       touch=touch)
