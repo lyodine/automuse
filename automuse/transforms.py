@@ -6,6 +6,8 @@ Neo-Riemannian transforms are implemented
 referencing //Hollywood Harmony// by Lehman.
 """
 from typing import overload, Literal, Callable
+import math
+
 from . import Note
 from . import Interval
 from . import NOTES
