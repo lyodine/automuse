@@ -1,6 +1,6 @@
 """Utilities that play MIDI notes.
 """
-from typing import Sequence, Annotated, Literal
+from typing import Sequence, Annotated, Literal, Any, Optional
 import mido  # type: ignore[import-untyped]
 import mido.backends.rtmidi as rtmidi  # type: ignore[import-untyped]
 import random
@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from . import note_s2i
 from enum import IntEnum
 from time import sleep
+from .transforms import transpose
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -240,7 +241,7 @@ def voice(notes: list[str],
         notes_to_play = notes
 
     if play_args is None:
-        play_args = {}
+        play_args = {"duration": 1}
 
     with Player() as player:
         # Passing an [str, Any] dict as argument
