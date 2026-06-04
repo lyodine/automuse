@@ -200,6 +200,12 @@ def _initialise_intervals() -> dict[str, int]:
 INTERVALS: dict[str, int] = _initialise_intervals()
 
 
+def interval(name: str) -> int:
+    """Given a name, return the interval in semitones
+    by indexing :attr:`INTERVALS`"""
+    return INTERVALS[name]
+
+
 def interval_s2i(name: str) -> Interval:
     """Map a interval name (e.g. :code:`major 2`)
     to a semitone difference.
