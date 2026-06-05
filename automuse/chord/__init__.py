@@ -215,11 +215,12 @@ SEVENTH_TYPES_MAP = {
     "major": "ᴹ",
     "minor": "ᵐ",
     "augmented": "⁺",
-    "diminished": "ᵈ"
+    "diminished": "⁻",
+    "half diminished": "ᶲ"
 }
 
 
-def name_chord(
+def chord_to_name(
     tonic: str,
     mode_name: str,
     order: int,

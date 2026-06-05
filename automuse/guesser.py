@@ -43,7 +43,7 @@ from . import extract_pitch_class, Degree
 
 from collections.abc import Iterable
 from .scale import scale
-from .chord import chord, seventh, name_chord
+from .chord import chord, seventh, chord_to_name
 from .transforms import invert_chord_by
 from typing import NamedTuple, Literal, Sequence
 
@@ -261,7 +261,7 @@ def guess_chord(
                         chord_notes: list[str] = invert_chord_by(
                             chord_actual,
                             invert_by)
-                        chord_name: str = name_chord(
+                        chord_name: str = chord_to_name(
                             tonic=tonic,
                             order=order,
                             chord_type="triad",
@@ -285,7 +285,7 @@ def guess_chord(
                                 chord_notes: list[str] = invert_chord_by(
                                     chord_actual,
                                     invert_by)
-                                chord_name: str = name_chord(
+                                chord_name: str = chord_to_name(
                                     tonic=tonic,
                                     order=order,
                                     chord_type="triad",
