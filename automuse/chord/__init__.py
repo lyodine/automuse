@@ -2,6 +2,7 @@
 """
 # Legacy, find an alternative.
 from .counted import count_triad_major
+from .. import interval, name_offsets, Offset
 
 from .. import (
     INTERVALS,
@@ -106,8 +107,8 @@ def chord(
     #   from the tonic.
     if isinstance(raw_offsets, str):
         raw_offsets = [raw_offsets]
-    for interval in raw_offsets:
-        result.append(reach(tonic, INTERVALS[interval] + pegasus))
+    for _iv in raw_offsets:
+        result.append(reach(tonic, INTERVALS[_iv] + pegasus))
 
     if order > 0 and (raw_offsets or sharp or flat):
         # Removing for now.
@@ -237,3 +238,57 @@ def name_chord(
         + SEVENTH_TYPES_MAP[seventh_type]\
         + INVERSION_NAMES_MAP[chord_type][inversion]\
         + f"({ORDER_NAMES[order]})"
+
+
+_7 = INVERSION_NAMES_MAP["seventh"][0]
+_MAJOR_7 = SEVENTH_TYPES_MAP["major"] + _7
+_DIMINISHED_7 = SEVENTH_TYPES_MAP["diminished"] + _7
+_HALF_DIMINISHED_7 = SEVENTH_TYPES_MAP["half diminished"] + _7
+
+OFFSET_NAMES_TO_QUALITY = {
+    ("major 3", "perfect 5"): "M",
+    ("minor 3", "perfect 5"): "m",
+    ("minor 3", "augmented 5"): "+",
+    ("minor 3", "diminished 5"): "-",
+    ("major 3", "perfect 5", "major 7"): "M" + _7,
+    ("minor 3", "perfect 5", "minor 7"): "m" + _7,
+    ("major 3", "perfect 5", "minor 7"): _7,  # Dom
+    ("minor 3", "diminished 5", "minor 7"): _HALF_DIMINISHED_7,  # Half Dim
+    ("minor 3", "diminished 5", "diminished 7"): _DIMINISHED_7,  # Dim
+    ("minor 3", "perfect 5", "major 7"): "m" + _MAJOR_7,  # mM
+    ("major 3", "augmented 5", "major 7"): "+" + _MAJOR_7,  # Aug M
+    ("major 3", "augmented 5", "minor 7"): "+" + _7,  # Aug 7
+    ("minor 3", "diminished 5", "major 7"): "m" + _MAJOR_7 + "ᵇ⁵",  # Dim M
+    ("major 3", "diminished 5", "minor 7"): _7 + "ᵇ⁵",  # Dom 7 b5
+    ("major 3", "diminished 5", "major 7"): _7 + "ᵇ⁵",  # M 7 b5
+}
+
+
+OFFSETS_TO_QUALITY = {
+    tuple(
+        interval(name)
+        for name in offset_names):
+    quality for (offset_names, quality)
+            in OFFSET_NAMES_TO_QUALITY.items()
+}
+
+
+def chord_to_quality(
+        chord: list[str],
+        offsets_to_quality: dict[
+            tuple[Offset, ...],
+            str
+        ] = OFFSETS_TO_QUALITY):
+    # If :arg:`chord` is a triad, take it in its entirety.
+    # Otherwise, take the first 4 notes to form a seventh.
+    use_chord_length: int = min(len(chord), 4)
+    chord = chord[:use_chord_length]
+
+    tonic: int = note_s2i(chord[0])
+    offsets: tuple[Offset, ...] =\
+        tuple(note_s2i(note) - tonic for note in chord[1:])
+
+    if offsets in offsets_to_quality:
+        return offsets_to_quality[offsets]
+    else:
+        return f"Other: {name_offsets(chord)}"
