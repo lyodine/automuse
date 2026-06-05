@@ -270,6 +270,16 @@ def name_intervals(notes: list[str]) -> list[str]:
                                          [*notes, ":v"]))[1:-1]]
 
 
+def name_offsets(notes: list[str]) -> list[str]:
+    """Name intervals of notes in :arg:`notes` from
+    the tonic. Ignore the first note, which is always
+    prime to itself.
+    """
+    tonic: str = notes[0]
+    return [name_interval(tonic, this)
+            for this in notes]
+
+
 def reach(root: str,
           interval: str | int,
           reverse: bool = False) -> str:
