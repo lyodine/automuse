@@ -2,7 +2,9 @@
 """
 # Legacy, find an alternative.
 from .counted import count_triad_major
+from typing import Sequence
 from .. import interval, name_offsets, Offset
+from ..transforms import transpose
 
 from .. import (
     INTERVALS,
@@ -28,7 +30,8 @@ def chord(
     sus: Degree | list[Degree] | None = None,
     sharp: Degree | list[Degree] | None = None,
     flat: Degree | list[Degree] | None = None,
-    raw_offsets: str | list[str] | None = None,
+    raw_offsets:
+    Sequence[str | int] | None = None,
 ) -> list[str]:
     """Construct a chord from a scale. Construct a triad by default.
 
@@ -54,7 +57,7 @@ def chord(
     sus = _init_list_if_none(sus)
     sharp = _init_list_if_none(sharp)
     flat = _init_list_if_none(flat)
-    raw_offsets = _init_list_if_none(raw_offsets)
+    raw_offsets = [] if raw_offsets is None else raw_offsets
 
     scallion = scale(tonic, mode)
 
@@ -108,7 +111,10 @@ def chord(
     if isinstance(raw_offsets, str):
         raw_offsets = [raw_offsets]
     for _iv in raw_offsets:
-        result.append(reach(tonic, INTERVALS[_iv] + pegasus))
+        if isinstance(_iv, int):
+            result.append(transpose(tonic, _iv))
+        else:
+            result.append(reach(tonic, INTERVALS[_iv] + pegasus))
 
     if order > 0 and (raw_offsets or sharp or flat):
         # Removing for now.
@@ -137,7 +143,7 @@ def seventh(
     sus: int | list[int] | None = None,
     sharp: Degree | list[Degree] | None = None,
     flat: Degree | list[Degree] | None = None,
-    raw_offsets: str | list[str] | None = None,
+    raw_offsets: list[int] | list[str] | None = None,
     order: int = 0,
 ) -> list[str]:
     """Construct a seventh chord from a scale. Can
