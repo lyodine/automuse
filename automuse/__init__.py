@@ -330,7 +330,7 @@ def extract_octave(expr: str) -> int:
 
     For example, calling with :code:`"C#4"` yields 4.
     """
-    manah: Optional[re.Match] = re.match("((?![0-9]).)(([0-9]).)", expr)
+    manah: Optional[re.Match] = re.match("([^0-9]*)([0-9]*)", expr)
 
     if manah:
         return int(manah.group(2))
