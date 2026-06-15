@@ -2,9 +2,8 @@
 """
 # Legacy, find an alternative.
 from .counted import count_triad_major
-from typing import Sequence
-from .. import interval, name_offsets, Offset
-from ..transforms import transpose
+from typing import Sequence, overload
+from .. import interval, Offset
 
 from .. import (
     INTERVALS,
@@ -22,6 +21,30 @@ from typing import Literal
 from ..scale import scale
 
 
+@overload
+def transpose(note: str,
+              by: int) -> str:
+    pass
+
+
+@overload
+def transpose(note: list[str],
+              by: int) -> list[str]:
+    pass
+
+
+def transpose(note: str | list[str],
+              by: int) -> str | list[str]:
+    """Local copy of :meth:`.chord.transpose`.
+
+    Here to avoid circular import.
+    """
+    if isinstance(note, str):
+        return note_i2s(note_s2i(note) + by)
+    else:
+        return [transpose(n, by) for n in note]
+
+
 def chord(
     tonic: str,
     mode: list[Interval],
@@ -34,6 +57,8 @@ def chord(
     Sequence[str | int] | None = None,
 ) -> list[str]:
     """Construct a chord from a scale. Construct a triad by default.
+
+    If :arg:`tonic` is an empty string, return an empty list.
 
     Args:
         tonic: Root of the chord.
@@ -48,7 +73,18 @@ def chord(
         order: Order of scale. For example, 0 means :math:`\\text{I}`
             and 1 means :math:`\\text{II}`
 
+    .. warning::
+        :arg:`sus` is applied before :arg:`add` and simply takes
+        away degrees, instead of replacing them.
+
+        To replace a degree, add the
+        replacement in :add:`raw_intervals`: for
+        example, you can call
+        :code:`chord(..., sus=[2], raw_intervals="diminished 2")`.
     """
+    if len(tonic) < 1:
+        return []
+
     def _init_list_if_none[T](what: T | list[T] | None)\
             -> T | list[T]:
         return [] if what is None else what
@@ -63,19 +99,18 @@ def chord(
 
     degrees: list[Degree] = [0, 2, 4]
 
-    # Add each of the `add`th degrees.
-    if isinstance(add, int):
-        add = [add]
-    degrees += add
-
     # Remove each of the `sus`th degrees.
     if isinstance(sus, int):
         sus = [sus]
     for su in sus:
         degrees = [x for x in degrees if x != su]
 
-    result: list[str] = []
+    # Add each of the `add`th degrees.
+    if isinstance(add, int):
+        add = [add]
+    degrees += add
 
+    result: list[str] = []
     for d in degrees:
         result.append(
             note_i2s(
@@ -86,7 +121,7 @@ def chord(
 
     # This is the "offset" caused by `order`\
     # of the first note from its original position.
-    pegasus = note_s2i(result[0]) \
+    pegasus = note_s2i(scallion[order % len(scallion)]) \
         + len(NOTE_NAMES) * (order // len(scallion)) \
         - note_s2i(scallion[0])
 
@@ -225,6 +260,55 @@ SEVENTH_TYPES_MAP = {
     "half diminished": "ᶲ"
 }
 
+from dataclasses import dataclass, asdict
+from typing import Self
+from typing import TypedDict, cast
+
+
+class ChordArgsDict(TypedDict):
+    """A :class:`dict` that captures the interface of
+    :meth:`.chord`. Unpack to use.
+    """
+    tonic: str
+    mode: list[Interval]
+    order: int
+    add: Degree | list[Degree]
+    sus: Degree | list[Degree]
+    sharp: Degree | list[Degree]
+    flat: Degree | list[Degree]
+    raw_offsets: Sequence[str | int]
+
+
+@dataclass
+class ChordArgs():
+    """Packed arguments for :class:`.chord`.
+    """
+    tonic: str
+    mode: list[Interval]
+    order: int
+    add: Degree | list[Degree] | None
+    sus: Degree | list[Degree] | None
+    sharp: Degree | list[Degree] | None
+    flat: Degree | list[Degree] | None
+    raw_offsets: Sequence[str | int] | None
+    inversion: int = 0
+    mode_name: str = "?"
+
+    def to_dict(self: Self) -> ChordArgsDict:
+        """Return a :class:`dict` that can be unpacked
+        in :meth:`.chord`.
+
+        Does not contain keys that are not parameter in
+        :meth:`.chord`.
+        """
+        return cast(
+            ChordArgsDict,
+            {key: value for key, value in asdict(self)
+                if value not in ChordArgsDict.__required_keys__})
+
+    def to_str(self: Self) -> str:
+        return NotImplemented
+
 
 def chord_to_name(
     tonic: str,
@@ -286,6 +370,22 @@ def chord_to_quality(
             tuple[Offset, ...],
             str
         ] = OFFSETS_TO_QUALITY):
+    """Return the quality of :arg:`chord`. Use
+    :arg:`offsets_to_quality` to determine how intervals
+    map to qualities (for example, :code:`(4, 7)` maps
+    to :code:`M` for Major).
+
+    If :arg:`chord` has 3 notes, treat it as a triad; otherwise,
+    slice the first four notes from :arg:`chord` and treat
+    it as a seventh.
+
+    Return :code:`🐆` followed by offsets if the
+    quality cannot be determined; If :arg:`chord` is empty,
+    simply return :code:`🐆`.
+    """
+    if len(chord) < 1:
+        return "🐆"
+
     # If :arg:`chord` is a triad, take it in its entirety.
     # Otherwise, take the first 4 notes to form a seventh.
     use_chord_length: int = min(len(chord), 4)
@@ -298,4 +398,4 @@ def chord_to_quality(
     if offsets in offsets_to_quality:
         return offsets_to_quality[offsets]
     else:
-        return f"Other: {name_offsets(chord)}"
+        return f"🐆 {offsets}"  # "🐆" == "?'

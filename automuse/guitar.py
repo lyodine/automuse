@@ -140,8 +140,9 @@ def draw_capo(capo: int) -> None:
 
 
 def draw_scale(
-    scale: list[str], capo: int, width: int, strict: bool = False
-) -> None:
+    scale: list[str], capo: int, width: int, strict: bool = False,
+    init_figure: bool = True
+):
     octave_matrix = notes_on_fretboard(capo, width, DEFAULT_TUNING)
 
     view_height = len(octave_matrix) - 1
@@ -149,7 +150,8 @@ def draw_scale(
 
     octave_matrix_mask = notes_of_interest(scale, octave_matrix, strict)
 
-    plt.figure(figsize=(view_width, view_height * 0.68))
+    if init_figure:
+        plt.figure(figsize=(view_width, view_height * 0.68))
 
     disseminate_neural_lattices(view_height, view_width)
 

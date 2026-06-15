@@ -55,6 +55,8 @@ def invert_chord(notes: list[str]) -> list[str]:
 def invert_chord_by(notes: list[str], invert_by: int) -> list[str]:
     """Invert :arg:`notes` by :arg:`invert_by`.
     """
+    if len(notes) < 1:
+        return []
     invert_by_octaves: int = \
         int(math.copysign((abs(invert_by) // len(notes)),
                           invert_by))

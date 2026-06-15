@@ -12,14 +12,15 @@ from .transforms import transpose
 
 from concurrent.futures import ThreadPoolExecutor
 
+from types import TracebackType
+from typing import Type, TypeVar
+EX = TypeVar("EX", bound=Exception)
+
 MINIMUM_VELOCITY: int = 1
 from typing import Self
 
-#: Type of a number in an inclusive range.
-type RangeInclusive = tuple[int, int]
-
 #: Index of a MIDI channel.
-type Channel = Annotated[int, RangeInclusive[0, 15]]
+type Channel = Annotated[int, (0, 15)]
 
 
 # Suppressing because MIDO does not come
@@ -33,7 +34,7 @@ def show_ports() -> list[str]:
     return mido.get_output_names()  # type: ignore
 
 
-DEFAULT_PORT: str = mido.get_output_names()[0]  # type: ignore
+default_port: str = mido.get_output_names()[0]  # type: ignore
 
 
 def set_default_port(port_name: str) -> None:
@@ -41,13 +42,13 @@ def set_default_port(port_name: str) -> None:
     :class:`Player` uses this port when one is not given
     in its initialiser.
     """
-    global DEFAULT_PORT
-    DEFAULT_PORT = port_name
+    global default_port
+    default_port = port_name
 
 
 class Player:
     def __init__(self: Self,
-                 port: str = DEFAULT_PORT,
+                 port: str = default_port,
                  pool_size: int = 6):
         self.port: rtmidi.Output = mido.open_output(port)  # type: ignore
         self.pool: ThreadPoolExecutor = ThreadPoolExecutor(pool_size)
@@ -55,10 +56,13 @@ class Player:
     def __enter__(self: Self) -> 'Player':
         return self
 
-    def __exit__(self: Self, exc_type, exc_val, exc_tb) -> bool:
-        print("closing")
+    def __exit__(self: Self, exc_type: Type[EX] | None,
+                 exc_val: EX,
+                 exc_tb: TracebackType) -> bool:
         self.pool.__exit__(exc_type, exc_val, exc_tb)
-        self.port.__exit__(exc_type, exc_val, exc_tb)
+        self.port.__exit__(exc_type,  # type: ignore[ereportUnknownMemberType]
+                           exc_val,
+                           exc_tb)
 
         if exc_type is not None:
             print(f"Exception raised: {exc_type} ({exc_val})")
@@ -75,7 +79,7 @@ def _note_on(channel: Channel,
         "note_on",
         channel=channel,
         note=note,
-        velocity=velocity)
+        velocity=min(velocity, 127))
 
 
 def _note_off(channel: Channel,
@@ -87,7 +91,7 @@ def _note_off(channel: Channel,
         "note_off",
         channel=channel,
         note=note,
-        velocity=velocity)
+        velocity=min(velocity, 127))
 
 
 def _note_off_any(channel: Channel,
@@ -116,12 +120,15 @@ def _play_notes(output: rtmidi.Output,
                 *,
                 arpeggio: Literal["ascending"]
                 | Literal["descending"]
+                | Sequence[int]
                 | None,
                 spacing: float
                 | tuple[float, float],
                 touch: int
-                | tuple[int, int]):
-
+                | tuple[int, int],
+                touch_multipliers: Sequence[float]
+                | None):
+    chord_length: int = len(chord)
     # Arrange notes in order
     if arpeggio is not None:
         if arpeggio == "ascending":
@@ -129,9 +136,16 @@ def _play_notes(output: rtmidi.Output,
         elif arpeggio == "descending":
             chord = sorted(chord, reverse=True)
         else:
-            raise ValueError(f"`arpeggio` cannot be {arpeggio}.")
+            assert len(arpeggio) == chord_length
+            chord = [chord[i] for i in arpeggio]
 
-    chord_length: int = len(chord)
+    if touch_multipliers is None:
+        touch_multipliers = (1,) * chord_length
+    else:
+        assert len(touch_multipliers) == chord_length
+    # Change to a more accurate name; `touch_multipliers`
+    #   is for the user.
+    velocity_multipliers = touch_multipliers
 
     # Create vector of velocity variations
     velocity_deltas: Sequence[int]
@@ -140,7 +154,7 @@ def _play_notes(output: rtmidi.Output,
                                           touch[1])
                            for _ in range(chord_length)]
     else:
-        velocity_deltas = [0] * chord_length
+        velocity_deltas = [touch] * chord_length
 
     # Create vector of melodic intervals
     # After each note is played, wait for ``offsets_for_next``
@@ -151,26 +165,37 @@ def _play_notes(output: rtmidi.Output,
                                        spacing[1])
                         for _ in range(chord_length)]
     else:
-        next_offsets = [0] * chord_length
+        next_offsets = [spacing] * chord_length
+
+    velocities: tuple[int, ...] = tuple(
+        round((velocity + delta) * mult) for delta, mult
+        in zip(velocity_deltas, velocity_multipliers)
+    )
 
     #: Schedule of notes to play. Each item is
-    #:  a tuple (note, velocity_delta, next_offset).
-    play_schedule: Sequence[tuple[int, float, float]]
-    play_schedule = tuple(zip(chord, velocity_deltas, next_offsets))
+    #:  a tuple (note, velocity, next_offset).
+    play_schedule: Sequence[tuple[int, int, float]]
+    play_schedule = tuple(zip(chord,
+                              velocities,
+                              next_offsets))
 
-    for note, velocity_delta, next_offset in play_schedule:
-        output.send(_note_on(channel=channel,
+    for note, velocity, next_offset\
+            in play_schedule:
+        output.send(_note_on(channel=channel,  # type: ignore
                              note=note,
-                             velocity=velocity + velocity_delta))
+                             velocity=velocity))
         sleep(next_offset)
 
     # Subtract intervals, so notes play for the same duration.
     sleep(duration - sum(next_offsets))
 
-    for note, velocity_delta, _ in play_schedule:
-        output.send(_note_off(channel=channel,
+    for note, velocity, _\
+            in play_schedule:
+        output.send(_note_off(channel=channel,  # type: ignore
                               note=note,
-                              velocity=velocity + velocity_delta))
+                              velocity=velocity))
+    # Make sure the last note completes.
+    sleep(duration)
 
 
 def play(player: Player,
@@ -181,11 +206,14 @@ def play(player: Player,
          *,
          arpeggio: Literal["ascending"]
          | Literal["descending"]
+         | Sequence[int]
          | None = None,
          spacing: float
          | tuple[float, float] = 0,
          touch: int
-         | tuple[int, int] = 0) -> None:
+         | tuple[int, int] = 0,
+         touch_multipliers: Sequence[float]
+         | None = None) -> None:
     """Play :arg:`notes` with :arg:`player`.
 
     Args:
@@ -196,12 +224,17 @@ def play(player: Player,
         channel: Channel to play the note or chord in.
         velocity: Velocity of the note or chord.
         arpeggio: Order of the note or chord. If ``None``,
-            then the order in :arg:`notes` is used.
+            then the order in :arg:`notes` is used. If a
+            tuple is given, rearrange nots in :arg:`channel`
+            in that order.
         spacing: Melodic intervals between notes
             in the chord. If ``0``, then all notes are
             played at the same time.
         touch: Variation in note velocity (touch pressure).
             Simulates the beautiful human imperfection.
+        touch_multipliers: Velocity multipliers for each
+            note in :arg:`chord`. Each item multiplies
+            the velocity of the corresponding note.
     """
 
     sound_int: int | Sequence[int] = note_s2i(notes)
@@ -216,7 +249,8 @@ def play(player: Player,
         velocity=velocity,
         arpeggio=arpeggio,
         spacing=spacing,
-        touch=touch
+        touch=touch,
+        touch_multipliers=touch_multipliers
     )
 
 
@@ -395,7 +429,7 @@ def change_instrument(player: Player,
                       channel: Channel,
                       instrument: Instrument) -> None:
 
-    player.port.send(mido.Message('program_change',
+    player.port.send(mido.Message('program_change',  # type: ignore
                                   channel=channel,
                                   program=instrument))
 
@@ -467,11 +501,14 @@ def percuss(player: Player,
             *,
             arpeggio: Literal["ascending"]
             | Literal["descending"]
+            | tuple[int, ...]
             | None = None,
             spacing: float
             | tuple[float, float] = 0,
             touch: int
-            | tuple[int, int] = 0) -> None:
+            | tuple[int, int] = 0,
+            touch_multipliers: Sequence[float]
+            | None) -> None:
     """Play :arg:`notes` with :arg:`player`.
 
     Args:
@@ -498,23 +535,27 @@ def percuss(player: Player,
                      velocity=velocity,
                      arpeggio=arpeggio,
                      spacing=spacing,
-                     touch=touch)
+                     touch=touch,
+                     touch_multipliers=touch_multipliers)
 
 
 def _play_int(
         player: Player,
-        notes: list[int],
+        notes: Sequence[int],
         duration: float,
         channel: Channel,
         velocity: int,
         *,
         arpeggio: Literal["ascending"]
         | Literal["descending"]
+        | Sequence[int]
         | None = None,
         spacing: float
         | tuple[float, float] = 0,
         touch: int
-        | tuple[int, int] = 0) -> None:
+        | tuple[int, int] = 0,
+        touch_multipliers: Sequence[float]
+        | None = None) -> None:
 
     player.pool.submit(_play_notes,
                        output=player.port,
@@ -524,4 +565,5 @@ def _play_int(
                        velocity=velocity,
                        arpeggio=arpeggio,
                        spacing=spacing,
-                       touch=touch)
+                       touch=touch,
+                       touch_multipliers=touch_multipliers)

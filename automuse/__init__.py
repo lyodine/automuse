@@ -114,7 +114,10 @@ def note_s2i(name: str | list[str],
         if name in NOTES:
             return NOTES.index(name) + sofege_offset
         else:
-            return NOTE_NAMES.index(name) + sofege_offset
+            try:
+                return NOTE_NAMES.index(name) + sofege_offset
+            except ValueError:
+                raise ValueError(f"{name} is not a note")
 
     if isinstance(name, str):
         return _base(name)
@@ -195,8 +198,7 @@ def _initialise_intervals() -> dict[str, int]:
         else:
             raise KeyError()
     return result
-
-
+    
 INTERVALS: dict[str, int] = _initialise_intervals()
 
 

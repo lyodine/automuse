@@ -26,6 +26,7 @@ from .modes import MINOR_PENTATONIC
 from .modes import MAJOR_BLUES
 from .modes import MINOR_BLUES
 from .modes import WHOLE_TONE
+from .modes import CHROMATIC
 
 from .modes import TRIAD_MAJOR
 from .modes import TRIAD_MINOR
@@ -43,7 +44,7 @@ from . import extract_pitch_class, Degree
 
 from collections.abc import Iterable
 from .scale import scale
-from .chord import chord, seventh, chord_to_name
+from .chord import chord, seventh, chord_to_name, ChordArgs
 from .transforms import invert_chord_by
 from typing import NamedTuple, Literal, Sequence
 
@@ -90,6 +91,8 @@ TEST_SCALES: tuple[ModeSpec, ...] =\
     TEST_SCALES_EXOTIC +\
     TEST_SCALES_MODES
 
+ALL_SCALES = TEST_SCALES + ((CHROMATIC, "Chromatic"),)
+
 TEST_TRIAD_MODES: tuple[ModeSpec, ...] = (
     (TRIAD_MAJOR, "M3"),
     (TRIAD_MINOR, "m3")
@@ -112,8 +115,8 @@ TEST_CHORDS = TEST_TRIAD_MODES + TEST_SEVENTH_MODES
 _IMMUTABLE_NOTE_NAMES = tuple(NOTE_NAMES)
 
 
-#: Each item takes form (list[notes], key, mode)
-type ScaleSpec = tuple[list[str], str, str]
+#: Each item takes form (list[notes], key, mode, chord_args)
+type ScaleSpec = tuple[list[str], str, str, ChordArgs | None]
 
 
 class MatchResult(NamedTuple):
@@ -131,6 +134,8 @@ class MatchResult(NamedTuple):
     check: list[str]
     #: Notes to be matched against
     against: list[str]
+    #: Best guess of args that constructed the chord
+    chord_args: ChordArgs | None
 
 
 def guess_scale(notes: Sequence[str],
@@ -183,7 +188,8 @@ def guess_scale(notes: Sequence[str],
             test_scales.append(
                 (scale(key, mode),
                  key,
-                 mode_name)
+                 mode_name,
+                 None)
             )
 
     return guess(check=notes,
@@ -199,7 +205,7 @@ def guess_chord(
         chords: Iterable[
             Literal["triad"]
             | Literal["seventh"]] = ("triad", "seventh"),
-        orders: Iterable[Degree] = (0, 1, 2, 3, 4, 5, 6, 7),
+        orders: Iterable[Degree] | None = None,
         inversions: Sequence[int] = (0, 1, 2, 3),
         sort_key: Literal["matched"]
         | Literal["unused"]
@@ -247,6 +253,11 @@ def guess_chord(
         match_order: See :meth:`.guess_scale`.
     """
     test_scales: list[ScaleSpec] = []
+    notes = tuple(notes)  # Have to do this, if we
+    #   were to determine the length of `notes`.
+    if orders is None:
+        orders = tuple(range(len(notes) + 1))
+
     # Oh no so many indentations! It's too much!
     for tonic in tonics:
         for mode, mode_name in mode_specs:
@@ -268,7 +279,22 @@ def guess_chord(
                             mode_name=mode_name,
                             inversion=invert_by,
                             include_tonic=False)
-                        test_scales.append((chord_notes, tonic, chord_name))
+                        chord_args = ChordArgs(
+                            tonic=tonic,
+                            mode=mode,
+                            order=order,
+                            add=None,
+                            sus=None,
+                            sharp=None,
+                            flat=None,
+                            raw_offsets=None,
+                            inversion=invert_by,
+                            mode_name=mode_name
+                        )
+                        test_scales.append((chord_notes,
+                                            tonic,
+                                            chord_name,
+                                            chord_args))
                     if "seventh" in chords:
                         for seventh_type in [None,
                                              "major",
@@ -282,10 +308,10 @@ def guess_chord(
                                 type=seventh_type,
                             )
                             for invert_by in inversions[:3]:
-                                chord_notes: list[str] = invert_chord_by(
+                                chord_notes = invert_chord_by(
                                     chord_actual,
                                     invert_by)
-                                chord_name: str = chord_to_name(
+                                chord_name = chord_to_name(
                                     tonic=tonic,
                                     order=order,
                                     chord_type="triad",
@@ -293,9 +319,22 @@ def guess_chord(
                                     inversion=invert_by,
                                     seventh_type=seventh_type,
                                     include_tonic=False)
+                                chord_args = ChordArgs(
+                                    tonic=tonic,
+                                    mode=mode,
+                                    order=order,
+                                    add=[7],
+                                    sus=None,
+                                    sharp=None,
+                                    flat=None,
+                                    raw_offsets=None,
+                                    inversion=invert_by,
+                                    mode_name=mode_name
+                                )
                                 test_scales.append((chord_notes,
                                                     tonic,
-                                                    chord_name))
+                                                    chord_name,
+                                                    chord_args))
 
     return guess(check=notes,
                  test_scales=test_scales,
@@ -330,20 +369,28 @@ def guess(check: Iterable[str],
 
     match match_order:
         case "substring":
-            for notes, key, mode in test_scales:
+            for notes, key, mode, chord_args in test_scales:
                 notes = [extract_pitch_class(x) for x in notes]
                 match_result.append(
-                    _match_substring(check, notes, key, mode)
+                    _match_substring(check,
+                                     notes,
+                                     key,
+                                     mode,
+                                     chord_args)
                 )
         case "order":
-            for notes, key, mode in test_scales:
+            for notes, key, mode, chord_args in test_scales:
                 notes = [extract_pitch_class(x) for x in notes]
                 match_result.append(
-                    _match_order(check, notes, key, mode)
+                    _match_order(check,
+                                 notes,
+                                 key,
+                                 mode,
+                                 chord_args)
                 )
         case "any":
             check_set: set[str] = set(check)
-            for notes, key, mode in test_scales:
+            for notes, key, mode, chord_args in test_scales:
                 notes = [extract_pitch_class(x) for x in notes]
                 against_set = set(notes)
                 match_result.append(
@@ -354,7 +401,8 @@ def guess(check: Iterable[str],
                         unmatched=list(check_set.difference(against_set)),
                         unused=list(against_set.difference(check_set)),
                         check=check,
-                        against=notes))
+                        against=notes,
+                        chord_args=chord_args))
         case _:
             raise ValueError(f"Order {match_order} not recognised")
 
@@ -378,7 +426,8 @@ def guess(check: Iterable[str],
 def _match_substring(check: list[str],
                      against: list[str],
                      key: str,
-                     mode: str) -> MatchResult:
+                     mode: str,
+                     chord_args: ChordArgs | None) -> MatchResult:
     """Match the longest substring of :arg:`check`
     starting at index 0. For example, matching
     :code:`["A", "B"]` against :code:`["C", "A", "C", "B"]`
@@ -420,13 +469,15 @@ def _match_substring(check: list[str],
         + against[match_start + match_length:],
         check=check,
         against=against,
+        chord_args=chord_args
     )
 
 
 def _match_order(check: list[str],
                  against: list[str],
                  key: str,
-                 mode: str) -> MatchResult:
+                 mode: str,
+                 chord_args: ChordArgs | None = None) -> MatchResult:
     """Check :arg:`check` against :arg:`against` in
     order, RegEx style.
 
@@ -466,6 +517,7 @@ def _match_order(check: list[str],
                     if nj not in matched_js],
             check=check,
             against=against,
+            chord_args=chord_args
         )
     else:
         return MatchResult(
@@ -476,12 +528,16 @@ def _match_order(check: list[str],
             unmatched=check.copy(),
             check=check,
             against=against,
+            chord_args=chord_args
         )
 
 
 def tabulate_guess(result: list[MatchResult],
                    tablefmt: str = "simple") -> None:
-    return tabulate(result,
+    # The last item of `MatchResult` is a ChordArgs,
+    #   which is only used to attempt a reconstruction
+    #   of the chord. We don't want to print it.
+    return tabulate(result[:-1],
                     headers=["Key",
                              "Mode",
                              "Matched",
