@@ -1,3 +1,11 @@
+# 2.1.0
+
++ `(+)` Several improvements (a73a66a)
+* `(+)` Add `voice` (2856271)
+* `(+)` Add `percussion` (cb04f7b)
+* `(+)` Add music theory tools `extract_octave` (0606b49)
+  and `name_intervals` (8ee3350)
+
 # 2.0.1
 
 * `(+)` Use absolute links (f4b326d)
